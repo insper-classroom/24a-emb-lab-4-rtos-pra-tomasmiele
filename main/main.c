@@ -26,16 +26,15 @@ const uint LED_3_OLED = 22;
 const uint TRIG_PIN = 18;
 const uint ECHO_PIN = 17;
 
-volatile uint32_t start_time = 0;
-volatile uint32_t end_time = 0;
 volatile bool echo_received = false;
-volatile bool timer_fired = false;
 const uint MAX_DISTANCE = 100; // Máxima distância em cm que queremos medir
 
 // Filas e semáforos para sincronização
 QueueHandle_t xQueueDistance;
 SemaphoreHandle_t xSemaphoreTrigger;
 QueueHandle_t xQueueDistanceDisplay;
+SemaphoreHandle_t xSemaphoreTimerFired;
+
 
 void oled1_btn_led_init(void) {
     gpio_init(LED_1_OLED);
@@ -142,6 +141,8 @@ void oled1_demo_2(void *p) {
 }
 
 void gpio_callback(uint gpio, uint32_t events) {
+    static uint64_t start_time = 0;
+    uint64_t time_diff, end_time;
     uint64_t time_diff;
 
     if (events & GPIO_IRQ_EDGE_RISE) {
@@ -167,8 +168,8 @@ void send_pulse() {
 }
 
 int64_t alarm_callback(alarm_id_t id, void *user_data) {
-    timer_fired = true;
-    return 1000;
+    xSemaphoreGiveFromISR(xSemaphoreTimerFired, NULL);
+    return 1000; 
 }
 
 void sensor_init(void) {
@@ -256,7 +257,7 @@ int main() {
     xQueueDistance = xQueueCreate(10, sizeof(uint64_t));
     xQueueDistanceDisplay = xQueueCreate(10, sizeof(float));
     xSemaphoreTrigger = xSemaphoreCreateBinary();
-
+    xSemaphoreTimerFired = xSemaphoreCreateBinary();
 
     //xTaskCreate(oled1_demo_1, "Demo 1", 4095, NULL, 1, NULL);
     //xTaskCreate(oled1_demo_2, "Demo 2", 4095, NULL, 1, NULL);
