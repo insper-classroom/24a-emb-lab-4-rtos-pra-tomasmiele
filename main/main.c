@@ -143,7 +143,6 @@ void oled1_demo_2(void *p) {
 void gpio_callback(uint gpio, uint32_t events) {
     static uint64_t start_time = 0;
     uint64_t time_diff, end_time;
-    uint64_t time_diff;
 
     if (events & GPIO_IRQ_EDGE_RISE) {
         start_time = to_us_since_boot(get_absolute_time());
